@@ -27,6 +27,7 @@ namespace Lottery
     public partial class MainWindow : Window
     {
         // 定义存储的变量
+        List<List<int>> gotPrized;                          // 已获奖人
         List<int> allSignedNum;                             // 阳光普照奖候选人
         List<string> allSignedName;                         // 阳光普照奖候选人名字
         List<int> allSignedStudents;                        // 特一二三等奖候选人
@@ -173,8 +174,8 @@ namespace Lottery
             startTime = System.DateTime.Now;
             recordFileName = startTime.ToString("MM-dd-HH-mm-ss") + ".csv";
             storageFolderPath = RecordFileFolder;
-            sw = new StreamWriter(storageFolderPath + "\\" + recordFileName, true, UnicodeEncoding.GetEncoding("GB2312"));
-            sw.Flush();
+            //sw = new StreamWriter(storageFolderPath + "\\" + recordFileName, true, UnicodeEncoding.GetEncoding("GB2312"));
+            //sw.Flush();
         }
 
         /// <summary>
@@ -182,12 +183,13 @@ namespace Lottery
         /// </summary>
         private void InitAndPreProcessData(String ReadFolderPath)
         {
-            AllData = new List<string[]>()
-                ;
+            AllData = new List<string[]>();
+            gotPrized = new List<List<int>>();
             allSignedStudents = new List<int>();
             allSignedNum = new List<int>();
             allSignedName = new List<string>();
             allSignedStudentsName = new List<string>();
+
             alreadyGetPrize = new HashSet<int>();
             readFolderPath = ReadFolderPath;
             readFileName = "年会参与名单";
@@ -485,6 +487,10 @@ namespace Lottery
         /// <param name="e"></param>
         private void WithdrawBnt_OnClick(object sender, RoutedEventArgs e)
         {
+            if (gotPrized.Count > 0)
+            {
+                gotPrized.RemoveAt(gotPrized.Count - 1);
+            }
             clearAllImgText();
             Console.WriteLine("撤回抽奖！");
             ResetLayoutBnt.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
@@ -751,6 +757,7 @@ namespace Lottery
                 default:
                     break;
             }
+            generateAlreadyPrize();
             HashSet<int> num = new HashSet<int>();
             int[] randomNum = new int[randomCount];
             int[] _bufferrandomNum = new int[randomCount];
@@ -822,12 +829,27 @@ namespace Lottery
                             App.DoEvents(1000 / speed);
                         }
                     }
-                    for (int m = 0; m < randomCount; m++)
+                   
+                    gotPrized.Add(randomNum.ToList());
+                    gotPrized[gotPrized.Count - 1].Add(id);
+                    sw = new StreamWriter(storageFolderPath + "\\" + recordFileName, false, UnicodeEncoding.GetEncoding("GB2312"));
+                    sw.Flush();
+                    for (int i = 0; i < gotPrized.Count; i++)
                     {
-                        alreadyGetPrize.Add(randomNum[m]);
-                        sw.WriteLine(randomNum[m].ToString() + "," + name[m] + "," + id.ToString());
-                        sw.Flush();
+                        int count = gotPrized[i].Count;
+                        for (int j = 0; j < count-1; j++)
+                        {
+                            sw.WriteLine(gotPrized[i][j].ToString() + "," + allSignedName[gotPrized[i][j]] + "," + gotPrized[i][count-1].ToString());
+                        }
                     }
+                    sw.Flush();
+                    sw.Close();
+                    //for (int m = 0; m < randomCount; m++)
+                    //{
+                    //    alreadyGetPrize.Add(randomNum[m]);
+                    //    sw.WriteLine(randomNum[m].ToString() + "," + name[m] + "," + id.ToString());
+                    //    sw.Flush();
+                    //}
                 }
                 else
                 {
@@ -896,18 +918,49 @@ namespace Lottery
                             App.DoEvents(2000 / speed);
                         }
                     }
-         
-                    for (int m = 0; m < randomCount; m++)
+
+                    gotPrized.Add(randomNum.ToList());
+                    gotPrized[gotPrized.Count - 1].Add(id);
+
+                    sw = new StreamWriter(storageFolderPath + "\\" + recordFileName, false, UnicodeEncoding.GetEncoding("GB2312"));
+                    sw.Flush();
+                    for (int i = 0; i < gotPrized.Count; i++)
                     {
-                        alreadyGetPrize.Add(randomNum[m]);
-                        sw.WriteLine(randomNum[m].ToString() + "," + name[m] + "," + id.ToString());
-                        sw.Flush();
+                        int count = gotPrized[i].Count;
+                        for (int j = 0; j < count - 1; j++)
+                        {
+                            sw.WriteLine(gotPrized[i][j].ToString() + "," + allSignedName[gotPrized[i][j]] + "," + gotPrized[i][count - 1].ToString());
+                        }
                     }
+                    sw.Flush();
+                    sw.Close();
+                    //for (int m = 0; m < randomCount; m++)
+                    //{
+                    //    gotPrized.Add()
+                    //    alreadyGetPrize.Add(randomNum[m]);
+                    //    sw.WriteLine(randomNum[m].ToString() + "," + name[m] + "," + id.ToString());
+                    //    sw.Flush();
+                    //}
                 }
 
             }));
         }
+
+
+        public void generateAlreadyPrize()
+        {
+            alreadyGetPrize.Clear();
+            for(int i = 0; i < gotPrized.Count; i++)
+            {
+                for(int j = 0; j < gotPrized[i].Count-1; j++)
+                {
+                    alreadyGetPrize.Add(gotPrized[i][j]);
+                }
+            }
+        }
     }
+
+
     
     // 用于刷新，并控制延时
     public partial class App : System.Windows.Application
