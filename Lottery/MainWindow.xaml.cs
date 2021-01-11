@@ -34,20 +34,23 @@ namespace Lottery
         List<int> allSignedStudents;                        // 特一二三等奖候选人
         List<string> allSignedStudentsName;                 // 大奖候选人名字
         HashSet<int> alreadyGetPrize;                       // 已经获取了奖的
-        List<int> noSpecialPerson;                          // 无特殊人物
+       
+
         int state = 0;                                      // 目前状态
         int speed = 100;                                    // 显示帧率
         private readonly Stopwatch _sw = new Stopwatch();   // 用于计时
         public List<string[]> AllData;                      // 所有数据
         public string recordFileName;                       // 记录文件名
+        public string configFileName;                       // 配置文件名
         public string readFileName;                         // 读取文件名
         public static System.DateTime startTime;            // 系统启动时间
-        public string storageFolderPath;                    // 存储文件目录
+        public string recordFolderPath;                    // 存储文件目录
         public string readFolderPath;                       // 读取文件目录
         public string picFolderPath;                        // 图片存储目录
+
         public string[] picFiles;                           // 图片文件地址
-        System.IO.StreamWriter sw;                          // 写入的文件流
-        System.IO.StreamReader sr;                          // 读取的文件流
+        //System.IO.StreamWriter sw;                          // 写入的文件流
+        //System.IO.StreamReader sr;                          // 读取的文件流
 
         Random rd = new Random();                           // 随机数
         bool stophere = false;                              // 抽奖停止
@@ -63,17 +66,20 @@ namespace Lottery
             Console.WriteLine("this.ActualWidth=" + this.ActualWidth);
             Console.WriteLine("this.ActualHeight=" + this.ActualHeight);
 
-            InitPictures("C:\\BBL\\年会相片处理代码");
+            picFolderPath = "C:\\BBL\\年会相片处理代码";
+            readFolderPath = "C:\\BBL\\readcsv";
+            readFileName = "年会参与名单.csv";
+            recordFolderPath = "C:\\BBL\\recordcsv";
+            configFileName = "config.txt";
+            //InitPictures("C:\\BBL\\年会相片处理代码");
 
             gotPrized = new List<List<int>>();
             alreadyGetPrize = new HashSet<int>();
 
+
             readConfig();
 
-            
-       
-            
-            InitAndPreProcessData("C:\\BBL\\readcsv");
+            InitAndPreProcessData();
 
             // 初始化布局
             InitLayout(offset_x, offset_y);
@@ -83,46 +89,40 @@ namespace Lottery
         }
         public void readConfig()
         {
-            String path = "C:\\BBL\\readcsv\\setup.txt";
-
-
             String state_str = "";
             String csv_name = "";
             try
             {
-                FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                FileStream fs = new FileStream(readFolderPath+"\\"+ configFileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                 StreamReader reader = new StreamReader(fs);
                 state_str = reader.ReadLine();
                 csv_name = reader.ReadLine();
+                reader.Close();
+                fs.Close();
             }
             catch (Exception)
             {
                 state_str = "";
                 csv_name = "";
             }
-            if (state_str != null)
+            if (state_str != null && state_str!="")
             {
                 int state_num = int.Parse(state_str);
                 if (state_num < 9)
                 {
-                    storageFolderPath = "C:\\BBL\\recordcsv";
                     recordFileName = csv_name;
                     state = state_num;
-                    FileStream fs = new FileStream("C:\\BBL\\recordcsv" + "\\" + csv_name , System.IO.FileMode.Open, System.IO.FileAccess.Read);
-                    System.IO.StreamReader sr_ = new StreamReader(fs, UnicodeEncoding.GetEncoding("GB2312"));
+                    FileStream fs = new FileStream(recordFolderPath + "\\" + recordFileName , System.IO.FileMode.Open, System.IO.FileAccess.Read);
+                    System.IO.StreamReader sr = new StreamReader(fs, UnicodeEncoding.GetEncoding("GB2312"));
                     //记录每次读取的一行记录
                     string strLine = "";
-                    //记录每行记录中的各字段内容
-
-
-                    //逐行读取CSV中的数据
+                   
                     bool is_first=true;
                     int flag_num=-1;
                     string[] aryLine = null;
-                    while ((strLine = sr_.ReadLine()) != null)
+                    while ((strLine = sr.ReadLine()) != null)
                     {
                         aryLine = strLine.Split(',');
-                        
                         if (is_first)
                         {
                             is_first = false;
@@ -130,7 +130,6 @@ namespace Lottery
                             List<int> temp_list = new List<int>();
                             temp_list.Add(int.Parse(aryLine[0]));
                             gotPrized.Add(temp_list);
-                            //gotPrized=
                         }
                         else
                         {
@@ -150,13 +149,12 @@ namespace Lottery
                         }
                     }
                     gotPrized[gotPrized.Count - 1].Add(flag_num);
+                    sr.Close();
+                    fs.Close();
                 }
-                else InitRecordFile("C:\\BBL\\recordcsv");
+                else InitRecordFile();
             }
-            else InitRecordFile("C:\\BBL\\recordcsv");
-            //Console.WriteLine(state_num);
-            Console.WriteLine(csv_name);
-         
+            else InitRecordFile();   
         }
 
         /// <summary>
@@ -244,30 +242,29 @@ namespace Lottery
         /// <summary>
         /// 初始化人员图片目录
         /// </summary>
-        public void InitPictures(String PicFolder)
-        {
-            picFolderPath = PicFolder;
-        // picFiles = Directory.GetFiles(picFolderPath+"\\processed", "*.jp*");
+        //public void InitPictures(String PicFolder)
+        //{
+        //    picFolderPath = PicFolder;
+        //// picFiles = Directory.GetFiles(picFolderPath+"\\processed", "*.jp*");
         
-            var path = GetBitImage(picFolderPath+"\\processed\\00.jpg");
-        }
+        //    var path = GetBitImage(picFolderPath+"\\processed\\00.jpg");
+        //}
 
         /// <summary>
         /// 初始化人员名单及编号
         /// </summary>
-        private void InitRecordFile(String RecordFileFolder)
+        private void InitRecordFile()
         {
             startTime = System.DateTime.Now;
             recordFileName = startTime.ToString("MM-dd-HH-mm-ss") + ".csv";
-            storageFolderPath = RecordFileFolder;
-            //sw = new StreamWriter(storageFolderPath + "\\" + recordFileName, true, UnicodeEncoding.GetEncoding("GB2312"));
+            //sw = new StreamWriter(recordFolderPath + "\\" + recordFileName, true, UnicodeEncoding.GetEncoding("GB2312"));
             //sw.Flush();
         }
 
         /// <summary>
         /// 初始化及预处理数据
         /// </summary>
-        private void InitAndPreProcessData(String ReadFolderPath)
+        private void InitAndPreProcessData()
         {
             AllData = new List<string[]>();
             
@@ -276,10 +273,8 @@ namespace Lottery
             allSignedName = new List<string>();
             allSignedStudentsName = new List<string>();
 
-            readFolderPath = ReadFolderPath;
-            readFileName = "年会参与名单";
-            FileStream fs = new FileStream(readFolderPath + "\\" + readFileName + ".csv", System.IO.FileMode.Open, System.IO.FileAccess.Read);
-            sr = new StreamReader(fs, UnicodeEncoding.GetEncoding("GB2312"));
+            FileStream fs = new FileStream(readFolderPath + "\\" + readFileName , System.IO.FileMode.Open, System.IO.FileAccess.Read);
+            System.IO.StreamReader sr = new StreamReader(fs, UnicodeEncoding.GetEncoding("GB2312"));
             //记录每次读取的一行记录
             string strLine = "";
             //记录每行记录中的各字段内容
@@ -304,7 +299,8 @@ namespace Lottery
                     AllData.Add(aryLine);
                 }
             }
-           // removeRepeateData();
+            sr.Close();
+            // removeRepeateData();
             removeUnsignedPeople();
             foreach (var people in AllData)
             {
@@ -319,10 +315,9 @@ namespace Lottery
                     allSignedName.Add(people[1]);
                 }
             }
-  
-             
-
+            
         }
+
         private void removeUnsignedPeople()
         {
             for (int i = 0; i < AllData.Count; i++)
@@ -553,10 +548,6 @@ namespace Lottery
         /// <param name="e"></param>
         private void WithdrawBnt_OnClick(object sender, RoutedEventArgs e)
         {
-            if (gotPrized.Count > 0)
-            {
-                gotPrized.RemoveAt(gotPrized.Count - 1);
-            }
             clearAllImgText();
             Console.WriteLine("撤回抽奖！");
             ResetLayoutBnt.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
@@ -564,6 +555,11 @@ namespace Lottery
                 state--;
             else
                 state = 0;
+            if (gotPrized.Count > 0)
+            {
+                gotPrized.RemoveAt(gotPrized.Count - 1);
+            }
+            writeFile();
         }
 
         private BitmapImage GetBitImage(string path)
@@ -896,45 +892,8 @@ namespace Lottery
                    
                     gotPrized.Add(randomNum.ToList());
                     gotPrized[gotPrized.Count - 1].Add(id);
-                    sw = new StreamWriter(storageFolderPath + "\\" + recordFileName, false, UnicodeEncoding.GetEncoding("GB2312"));
-                    sw.Flush();
-                    for (int i = 0; i < gotPrized.Count; i++)
-                    {
-                        int count = gotPrized[i].Count;
-                        for (int j = 0; j < count-1; j++)
-                        {
-                            sw.WriteLine(gotPrized[i][j].ToString()+","+allSignedNum[gotPrized[i][j]].ToString() + "," + allSignedName[gotPrized[i][j]] + "," + gotPrized[i][count-1].ToString());
-                        }
-                    }
-                    sw.Flush();
-                    sw.Close();
 
-                    
-                    String path = "C:\\BBL\\readcsv\\setup.txt";
-                   
-                    try
-                    {
-                        FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite);
-                        
-                        StreamWriter sw = new StreamWriter(fs);
-                        sw.WriteLine(state.ToString());
-                        sw.WriteLine(recordFileName);
-                        sw.Flush();
-                  
-                        sw.Close();
-                        fs.Close();
-                    }
-                    catch (Exception)
-                    {
-                        
-                    }
-
-                    //for (int m = 0; m < randomCount; m++)
-                    //{
-                    //    alreadyGetPrize.Add(randomNum[m]);
-                    //    sw.WriteLine(randomNum[m].ToString() + "," + name[m] + "," + id.ToString());
-                    //    sw.Flush();
-                    //}
+                    writeFile();           
                 }
                 else
                 {
@@ -1007,57 +966,7 @@ namespace Lottery
                     gotPrized.Add(randomNum.ToList());
                     gotPrized[gotPrized.Count - 1].Add(id);
 
-
-
-                    sw = new StreamWriter(storageFolderPath + "\\" + recordFileName, false, UnicodeEncoding.GetEncoding("GB2312"));
-                    sw.Flush();
-                    for (int i = 0; i < gotPrized.Count; i++)
-                    {
-                        int count = gotPrized[i].Count;
-                        for (int j = 0; j < count - 1; j++)
-                        {
-                            sw.WriteLine(gotPrized[i][j].ToString()+","+allSignedNum[gotPrized[i][j]].ToString() + "," + allSignedName[gotPrized[i][j]] + "," + gotPrized[i][count - 1].ToString());
-                        }
-                    }
-                    sw.Flush();
-                    sw.Close();
-
-
-                    String path = "C:\\BBL\\readcsv\\setup.txt";
-                  
-                    try
-                    {
-                        FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite);
-                        
-                        StreamWriter sw = new StreamWriter(fs);
-                        sw.WriteLine(state.ToString());
-                        sw.WriteLine(recordFileName);                       // 记录文件名);
-                        sw.Flush();
-                  
-                        sw.Close();
-                        fs.Close();
-                    }
-                    catch (Exception)
-                    {
-                       
-                    }
-
-                    //FileStream fs = new FileStream(path, FileMode.Create);
-                    //StreamWriter sw = new StreamWriter(fs);
-                    ////开始写入
-                    //sw.Write("Hello World!!!!");
-                    ////清空缓冲区
-                    //sw.Flush();
-                    ////关闭流
-                    //sw.Close();
-                    //fs.Close();
-                    //for (int m = 0; m < randomCount; m++)
-                    //{
-                    //    gotPrized.Add()
-                    //    alreadyGetPrize.Add(randomNum[m]);
-                    //    sw.WriteLine(randomNum[m].ToString() + "," + name[m] + "," + id.ToString());
-                    //    sw.Flush();
-                    //}
+                    writeFile();
                 }
 
             }));
@@ -1073,6 +982,41 @@ namespace Lottery
                 {
                     alreadyGetPrize.Add(gotPrized[i][j]);
                 }
+            }
+        }
+
+        public void writeFile()
+        {
+
+            System.IO.StreamWriter sw = new StreamWriter(recordFolderPath + "\\" + recordFileName, false, UnicodeEncoding.GetEncoding("GB2312"));
+            sw.Flush();
+            for (int i = 0; i < gotPrized.Count; i++)
+            {
+                int count = gotPrized[i].Count;
+                for (int j = 0; j < count - 1; j++)
+                {
+                    sw.WriteLine(gotPrized[i][j].ToString() + "," + allSignedNum[gotPrized[i][j]].ToString() + "," + allSignedName[gotPrized[i][j]] + "," + gotPrized[i][count - 1].ToString());
+                }
+            }
+            sw.Flush();
+            sw.Close();
+
+
+            String path = "C:\\BBL\\readcsv\\setup.txt";
+
+            try
+            {
+                FileStream fs_ = new FileStream(readFolderPath+"\\"+configFileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite);
+                StreamWriter sw_ = new StreamWriter(fs_);
+                sw_.WriteLine(state.ToString());
+                sw_.WriteLine(recordFileName);                       // 记录文件名);
+                sw_.Flush();
+                sw_.Close();
+                fs_.Close();
+            }
+            catch (Exception)
+            {
+
             }
         }
     }
